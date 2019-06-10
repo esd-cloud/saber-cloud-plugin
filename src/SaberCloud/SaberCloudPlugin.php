@@ -1,7 +1,7 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: administrato
+ * User: 白猫
  * Date: 2019/6/10
  * Time: 15:06
  */
@@ -16,6 +16,25 @@ class SaberCloudPlugin extends AbstractPlugin
 {
 
     /**
+     * @var SaberCloudConfig|null
+     */
+    private $saberCloudConfig;
+
+    /**
+     * SaberCloudPlugin constructor.
+     * @param SaberCloudConfig|null $saberCloudConfig
+     * @throws \ReflectionException
+     */
+    public function __construct(?SaberCloudConfig $saberCloudConfig = null)
+    {
+        parent::__construct();
+        if($saberCloudConfig==null){
+            $saberCloudConfig = new SaberCloudConfig();
+        }
+        $this->saberCloudConfig = $saberCloudConfig;
+    }
+
+    /**
      * @return string
      */
     public function getName(): string
@@ -26,9 +45,11 @@ class SaberCloudPlugin extends AbstractPlugin
     /**
      * 初始化
      * @param Context $context
+     * @throws \ESD\Core\Plugins\Config\ConfigException
      */
     public function beforeServerStart(Context $context)
     {
+        $this->saberCloudConfig->merge();
         return;
     }
 

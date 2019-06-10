@@ -1,7 +1,7 @@
 <?php
 /**
  * Created by PhpStorm.
- * User: administrato
+ * User: 白猫
  * Date: 2019/6/10
  * Time: 15:09
  */
@@ -20,6 +20,12 @@ class SaberCloud
      * @var Services
      */
     protected $services;
+
+    /**
+     * @Inject()
+     * @var SaberCloudConfig
+     */
+    protected $config;
 
     /**
      * @var Saber[]
@@ -41,19 +47,18 @@ class SaberCloud
      * @return Saber
      * @throws CloudException
      */
-    public function getSaber(string $service)
+    public function getSaber(string $service):?Saber
     {
-        $serviceInfo = $this->services->getService($service);
-        if ($serviceInfo == null) throw new CloudException("Do not find service $service");
-        $baseUri = $serviceInfo->getServiceAgreement() . "://" . $serviceInfo->getServiceAddress() . ":" . $serviceInfo->getServicePort();
+        $baseUri = $this->getBaseUrl($service);
         $saber = $this->sabers[$baseUri] ?? null;
         if ($saber == null) {
             $normalOptions = [
                 'exception_report' => 0,
                 'base_uri' => $baseUri,
-                'retry_time' => 3,
-                'retry' => function (Saber\Request $request) {
-                    $request->getUri()->withHost();
+                'retry_time' => $this->config->getRetryTime(),
+                'retry' => function (Saber\Request $request) use ($service) {
+                    $baseUri = $this->getBaseUrl($service);
+                    $request->getUri()->withHost($baseUri);
                 }
             ];
             $options = $this->options[$service] ?? null;
@@ -66,5 +71,17 @@ class SaberCloud
             $this->sabers[$baseUri] = $saber;
         }
         return $saber;
+    }
+
+    /**
+     * @param $service
+     * @return string
+     * @throws CloudException
+     */
+    private function getBaseUrl($service)
+    {
+        $serviceInfo = $this->services->getService($service);
+        if ($serviceInfo == null) throw new CloudException("Do not find service $service");
+        return $serviceInfo->getServiceAgreement() . "://" . $serviceInfo->getServiceAddress() . ":" . $serviceInfo->getServicePort();
     }
 }
