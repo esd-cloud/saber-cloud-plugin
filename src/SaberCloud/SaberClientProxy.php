@@ -77,7 +77,7 @@ class SaberClientProxy
         $this->std = DIGet(Std::class);
         $this->scanClass = DIGet(ScanClass::class);
         $this->saberClient = $this->scanClass->getCachedReader()->getClassAnnotation($reflectionClass, SaberClient::class);
-        $this->requestMapping = $this->scanClass->getCachedReader()->getClassAnnotation($reflectionClass, RequestMapping::class);
+        $this->requestMapping = $this->scanClass->getClassAndInterfaceAnnotation($reflectionClass, RequestMapping::class);
         if ($this->requestMapping == null) {
             throw new SaberCloudException($reflectionClass->getName() . " missing RequestMapping Annotation");
         }
@@ -114,7 +114,7 @@ class SaberClientProxy
         }
 
         /** @var RequestMapping $requestMapping */
-        $requestMapping = $this->scanClass->getCachedReader()->getMethodAnnotation($reflectionMethod, RequestMapping::class);
+        $requestMapping = $this->scanClass->getMethodAndInterfaceAnnotation($reflectionMethod, RequestMapping::class);
         if ($requestMapping == null) {
             throw new SaberCloudException("method $name missing RequestMapping annotation");
         }
@@ -122,7 +122,7 @@ class SaberClientProxy
         //配置所有参数
         $stdParameters = [];
         $options = [];
-        foreach ($this->scanClass->getCachedReader()->getMethodAnnotations($reflectionMethod) as $annotation) {
+        foreach ($this->scanClass->getMethodAndInterfaceAnnotations($reflectionMethod) as $annotation) {
             if ($annotation instanceof PathVariable) {
                 $result = $nameArguments[$annotation->param ?? $annotation->value];
                 if ($annotation->required && $result == null) {
@@ -134,7 +134,7 @@ class SaberClientProxy
                 if ($annotation->required && $result == null) {
                     throw new ParamException("require params $annotation->value");
                 }
-                $options[$annotation->value] = $result;
+                $options['uri_query'][$annotation->value] = $result;
             } else if ($annotation instanceof RequestFormData) {
                 $result = $nameArguments[$annotation->param ?? $annotation->value];
                 if ($annotation->required && $result == null) {
@@ -189,7 +189,7 @@ class SaberClientProxy
         //请求
         $response = $saber->request($options);
         /** @var ResponseBody $responseBody */
-        $responseBody = $this->scanClass->getCachedReader()->getMethodAnnotation($reflectionMethod, ResponseBody::class);
+        $responseBody = $this->scanClass->getMethodAndInterfaceAnnotation($reflectionMethod, ResponseBody::class);
         if ($responseBody != null) {
             return json_decode($response->getBody()->__toString(), true);
         } else {

@@ -10,13 +10,14 @@ namespace ESD\Plugins\SaberCloud;
 
 
 use DI\Annotation\Inject;
+use ESD\Core\Plugins\Logger\GetLogger;
 use ESD\Psr\Cloud\Services;
 use Swlib\Saber;
 
 class SaberCloud
 {
+    use GetLogger;
     /**
-     * @Inject()
      * @var Services
      */
     protected $services;
@@ -36,6 +37,15 @@ class SaberCloud
      * @var array
      */
     protected $options;
+
+    public function __construct()
+    {
+        try {
+            $this->services = DIGet(Services::class);
+        }catch (\Throwable $e){
+            $this->warn("没有使用服务发现，通过服务名获取url将不可用");
+        }
+    }
 
     public function setSaberOptions(string $service, $options = [])
     {

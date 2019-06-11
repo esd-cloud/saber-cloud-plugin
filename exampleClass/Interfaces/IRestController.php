@@ -3,24 +3,21 @@
  * Created by PhpStorm.
  * User: administrato
  * Date: 2019/6/11
- * Time: 15:29
+ * Time: 16:48
  */
 
-namespace ESD\Plugins\SaberCloud\ExampleClass\Clients;
+namespace ESD\Plugins\SaberCloud\ExampleClass\Interfaces;
 
 use ESD\Plugins\EasyRoute\Annotation\GetMapping;
 use ESD\Plugins\EasyRoute\Annotation\PathVariable;
 use ESD\Plugins\EasyRoute\Annotation\RequestMapping;
 use ESD\Plugins\EasyRoute\Annotation\RequestParam;
-use ESD\Plugins\SaberCloud\Annotation\SaberClient;
 
 /**
- * @SaberClient("demo1")
- * @RequestMapping("user")
- * Interface AnnRestClient
- * @package ESD\Plugins\SaberCloud\ExampleClass\Clients
+ * @RequestMapping("test")
+ * Interface IRestController
  */
-interface AnnRestClient
+interface IRestController
 {
     /**
      * get请求
@@ -39,4 +36,5 @@ interface AnnRestClient
      * @return string
      */
     public function test($name, $id);
+
 }
