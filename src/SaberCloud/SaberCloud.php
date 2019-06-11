@@ -54,6 +54,7 @@ class SaberCloud
         if ($saber == null) {
             $normalOptions = [
                 'exception_report' => 0,
+                'use_pool' => true,
                 'base_uri' => $baseUri,
                 'retry_time' => $this->config->getRetryTime(),
                 'retry' => function (Saber\Request $request) use ($service) {
