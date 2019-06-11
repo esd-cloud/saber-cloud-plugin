@@ -30,11 +30,6 @@ class SaberClient extends Component
      */
     public $host;
     /**
-     * 路径
-     * @var string
-     */
-    public $path;
-    /**
      * 失败调用的类
      * @var string
      */

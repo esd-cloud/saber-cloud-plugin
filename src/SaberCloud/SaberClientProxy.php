@@ -60,7 +60,16 @@ class SaberClientProxy
      * @var array
      */
     private $cache = [];
+    /**
+     * @var RequestMapping
+     */
+    private $requestMapping;
 
+    /**
+     * SaberClientProxy constructor.
+     * @param \ReflectionClass $reflectionClass
+     * @throws SaberCloudException
+     */
     public function __construct(\ReflectionClass $reflectionClass)
     {
         $this->reflectionClass = $reflectionClass;
@@ -68,6 +77,10 @@ class SaberClientProxy
         $this->std = DIGet(Std::class);
         $this->scanClass = DIGet(ScanClass::class);
         $this->saberClient = $this->scanClass->getCachedReader()->getClassAnnotation($reflectionClass, SaberClient::class);
+        $this->requestMapping = $this->scanClass->getCachedReader()->getClassAnnotation($reflectionClass, RequestMapping::class);
+        if ($this->requestMapping == null) {
+            throw new SaberCloudException($reflectionClass->getName() . " missing RequestMapping Annotation");
+        }
         foreach ($this->reflectionClass->getMethods(\ReflectionMethod::IS_PUBLIC) as $reflectionMethod) {
             $this->reflectionMethods[$reflectionMethod->getName()] = $reflectionMethod;
         }
@@ -171,7 +184,7 @@ class SaberClientProxy
             }
         }
         if (empty($routeUrls)) throw new SaberCloudException("can not build route url");
-        $options['uri'] = "/" . trim($this->saberClient->path . "/" . array_pop($routeUrls), "/");
+        $options['uri'] = "/" . trim(trim($this->requestMapping->value, "/") . "/" . trim(array_pop($routeUrls), "/"), "/");
         $options['method'] = strtoupper($requestMapping->method[0]);
         //请求
         $response = $saber->request($options);

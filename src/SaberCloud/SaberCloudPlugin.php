@@ -11,13 +11,16 @@ namespace ESD\Plugins\SaberCloud;
 
 use ESD\Core\Context\Context;
 use ESD\Core\PlugIn\AbstractPlugin;
+use ESD\Core\PlugIn\PluginInterfaceManager;
+use ESD\Core\Plugins\Logger\GetLogger;
 use ESD\Plugins\AnnotationsScan\AnnotationsScanPlugin;
 use ESD\Plugins\AnnotationsScan\ScanClass;
 use ESD\Plugins\SaberCloud\Annotation\SaberClient;
+use ESD\Server\Co\Server;
 
 class SaberCloudPlugin extends AbstractPlugin
 {
-
+    use GetLogger;
     /**
      * @var SaberCloudConfig|null
      */
@@ -36,6 +39,20 @@ class SaberCloudPlugin extends AbstractPlugin
         }
         $this->saberCloudConfig = $saberCloudConfig;
         $this->atAfter(AnnotationsScanPlugin::class);
+    }
+
+    /**
+     * @param PluginInterfaceManager $pluginInterfaceManager
+     * @return mixed|void
+     * @throws \DI\DependencyException
+     * @throws \DI\NotFoundException
+     * @throws \ESD\Core\Exception
+     * @throws \ReflectionException
+     */
+    public function onAdded(PluginInterfaceManager $pluginInterfaceManager)
+    {
+        parent::onAdded($pluginInterfaceManager);
+        $pluginInterfaceManager->addPlug(new AnnotationsScanPlugin());
     }
 
     /**
@@ -61,6 +78,7 @@ class SaberCloudPlugin extends AbstractPlugin
      * 在进程启动前
      * @param Context $context
      * @return mixed
+     * @throws SaberCloudException
      */
     public function beforeProcessStart(Context $context)
     {
@@ -69,6 +87,9 @@ class SaberCloudPlugin extends AbstractPlugin
         $clients = $scanClass->findClassesByAnn(SaberClient::class);
         foreach ($clients as $client) {
             DISet($client->getName(), new SaberClientProxy($client));
+            if (Server::$instance->getProcessManager()->getCurrentProcessId() == 0) {
+                $this->debug("Register a SaberClient {$client->getName()}");
+            }
         }
         $this->ready();
     }
