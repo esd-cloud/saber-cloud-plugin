@@ -42,12 +42,32 @@ class SaberCloud
         $this->options[$service] = $options;
     }
 
+    public function getSaberFromBaseUrl(string $baseUri): ?Saber
+    {
+        $saber = $this->sabers[$baseUri] ?? null;
+        if ($saber == null) {
+            $normalOptions = [
+                'exception_report' => 0,
+                'use_pool' => true,
+                'base_uri' => $baseUri,
+                'retry_time' => $this->config->getRetryTime(),
+                'retry' => function (Saber\Request $request) use ($baseUri) {
+                    $request->getUri()->withHost($baseUri);
+                }
+            ];
+            $finalOptions = $normalOptions;
+            $saber = Saber::create($finalOptions);
+            $this->sabers[$baseUri] = $saber;
+        }
+        return $saber;
+    }
+
     /**
      * @param string $service
      * @return Saber
      * @throws CloudException
      */
-    public function getSaber(string $service):?Saber
+    public function getSaber(string $service): ?Saber
     {
         $baseUri = $this->getBaseUrl($service);
         $saber = $this->sabers[$baseUri] ?? null;

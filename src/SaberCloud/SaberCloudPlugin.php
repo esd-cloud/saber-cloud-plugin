@@ -11,6 +11,9 @@ namespace ESD\Plugins\SaberCloud;
 
 use ESD\Core\Context\Context;
 use ESD\Core\PlugIn\AbstractPlugin;
+use ESD\Plugins\AnnotationsScan\AnnotationsScanPlugin;
+use ESD\Plugins\AnnotationsScan\ScanClass;
+use ESD\Plugins\SaberCloud\Annotation\SaberClient;
 
 class SaberCloudPlugin extends AbstractPlugin
 {
@@ -28,10 +31,11 @@ class SaberCloudPlugin extends AbstractPlugin
     public function __construct(?SaberCloudConfig $saberCloudConfig = null)
     {
         parent::__construct();
-        if($saberCloudConfig==null){
+        if ($saberCloudConfig == null) {
             $saberCloudConfig = new SaberCloudConfig();
         }
         $this->saberCloudConfig = $saberCloudConfig;
+        $this->atAfter(AnnotationsScanPlugin::class);
     }
 
     /**
@@ -60,6 +64,12 @@ class SaberCloudPlugin extends AbstractPlugin
      */
     public function beforeProcessStart(Context $context)
     {
+        /** @var ScanClass $scanClass */
+        $scanClass = DIGet(ScanClass::class);
+        $clients = $scanClass->findClassesByAnn(SaberClient::class);
+        foreach ($clients as $client) {
+            DISet($client->getName(), new SaberClientProxy($client));
+        }
         $this->ready();
     }
 }

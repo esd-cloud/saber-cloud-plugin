@@ -1,7 +1,10 @@
 {
   "require": {
     "esd/esd-core": "~0.1",
-    "esd/saber-plugin": "~0.1"
+    "esd/saber-plugin": "~0.1",
+    "esd/annotations-scan-plugin": "~0.1",
+    "esd/easyroute-plugin": "~0.1",
+    "ext-json": "*"
   },
   "require-dev": {
     "esd/esd-co-server": "~0.1"
