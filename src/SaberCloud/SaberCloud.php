@@ -12,6 +12,7 @@ namespace ESD\Plugins\SaberCloud;
 use DI\Annotation\Inject;
 use ESD\Core\Plugins\Logger\GetLogger;
 use ESD\Psr\Cloud\Services;
+use Swlib\Http\Exception\HttpExceptionMask;
 use Swlib\Saber;
 
 class SaberCloud
@@ -57,7 +58,7 @@ class SaberCloud
         $saber = $this->sabers[$baseUri] ?? null;
         if ($saber == null) {
             $normalOptions = [
-                'exception_report' => 0,
+                'exception_report' => HttpExceptionMask::E_NONE,
                 'use_pool' => true,
                 'base_uri' => $baseUri,
                 'retry_time' => $this->config->getRetryTime(),

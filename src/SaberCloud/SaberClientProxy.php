@@ -25,6 +25,7 @@ use ESD\Plugins\EasyRoute\RouteException;
 use ESD\Plugins\SaberCloud\Annotation\SaberClient;
 use FastRoute\RouteParser\Std;
 use Swlib\Http\ContentType;
+use Swlib\Saber\Response;
 
 class SaberClientProxy
 {
@@ -64,6 +65,10 @@ class SaberClientProxy
      * @var RequestMapping
      */
     private $requestMapping;
+    /**
+     * @var Response
+     */
+    private $response;
 
     /**
      * SaberClientProxy constructor.
@@ -95,6 +100,7 @@ class SaberClientProxy
      * @throws RouteException
      * @throws SaberCloudException
      * @throws \ReflectionException
+     * @throws BadResponseException
      */
     public function __call($name, $arguments)
     {
@@ -187,13 +193,25 @@ class SaberClientProxy
         $options['uri'] = "/" . trim(trim($this->requestMapping->value, "/") . "/" . trim(array_pop($routeUrls), "/"), "/");
         $options['method'] = strtoupper($requestMapping->method[0]);
         //请求
-        $response = $saber->request($options);
+        $this->response = $saber->request($options);
+        if ($this->response->getStatusCode() >= 400 && $this->response->getStatusCode() < 500 && !$this->saberClient->decode404) {
+            if (class_exists($this->saberClient->fallback)) {
+                return call_user_func_array([DIGet($this->saberClient->fallback), $name], $arguments);
+            }
+            throw new RouteException($this->response->getStatusCode());
+        }
+        if ($this->response->getStatusCode() >= 500 || $this->response->getStatusCode() < 0) {
+            if (class_exists($this->saberClient->fallback)) {
+                return call_user_func_array([DIGet($this->saberClient->fallback), $name], $arguments);
+            }
+            throw new BadResponseException();
+        }
         /** @var ResponseBody $responseBody */
         $responseBody = $this->scanClass->getMethodAndInterfaceAnnotation($reflectionMethod, ResponseBody::class);
         if ($responseBody != null) {
-            return json_decode($response->getBody()->__toString(), true);
+            return json_decode($this->response->getBody()->__toString(), true);
         } else {
-            return $response->getBody()->__toString();
+            return $this->response->getBody()->__toString();
         }
     }
 
@@ -211,5 +229,13 @@ class SaberClientProxy
             $this->cache[$name] = $result;
         }
         return $result;
+    }
+
+    /**
+     * @return Response
+     */
+    public function getResponse(): Response
+    {
+        return $this->response;
     }
 }

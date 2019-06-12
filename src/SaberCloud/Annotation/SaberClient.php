@@ -34,4 +34,10 @@ class SaberClient extends Component
      * @var string
      */
     public $fallback;
+
+    /**
+     * 404s是否应该解码而不是抛出异常
+     * @var bool
+     */
+    public $decode404 = false;
 }

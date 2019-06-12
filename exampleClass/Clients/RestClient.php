@@ -12,7 +12,7 @@ use ESD\Plugins\SaberCloud\Annotation\SaberClient;
 use ESD\Plugins\SaberCloud\ExampleClass\Interfaces\IRestController;
 
 /**
- * @SaberClient(host="localhost:8082")
+ * @SaberClient(host="http://127.0.0.1:8082",fallback=RestClientFallback::class)
  * Interface RestClient
  * @package ESD\Plugins\SaberCloud\ExampleClass\Clients
  */
