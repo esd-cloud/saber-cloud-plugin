@@ -8,3 +8,6 @@ esd:
 scan:
   include_paths:
     examples: ${ROOT_DIR}/exampleClass
+redis:
+  default:
+    host: 'redis-master.dev.svc.cluster.local'
