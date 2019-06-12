@@ -10,6 +10,7 @@ namespace ESD\Plugins\SaberCloud;
 
 
 use ESD\Core\ParamException;
+use ESD\Core\Plugins\Logger\GetLogger;
 use ESD\Plugins\AnnotationsScan\ScanClass;
 use ESD\Plugins\EasyRoute\Annotation\ModelAttribute;
 use ESD\Plugins\EasyRoute\Annotation\PathVariable;
@@ -23,12 +24,14 @@ use ESD\Plugins\EasyRoute\Annotation\RequestRawXml;
 use ESD\Plugins\EasyRoute\Annotation\ResponseBody;
 use ESD\Plugins\EasyRoute\RouteException;
 use ESD\Plugins\SaberCloud\Annotation\SaberClient;
+use ESD\Psr\Cloud\CircuitBreaker;
 use FastRoute\RouteParser\Std;
 use Swlib\Http\ContentType;
 use Swlib\Saber\Response;
 
 class SaberClientProxy
 {
+    use GetLogger;
     /**
      * @var SaberClient
      */
@@ -71,6 +74,11 @@ class SaberClientProxy
     private $response;
 
     /**
+     * @var CircuitBreaker
+     */
+    private $circuitBreaker;
+
+    /**
      * SaberClientProxy constructor.
      * @param \ReflectionClass $reflectionClass
      * @throws SaberCloudException
@@ -81,6 +89,11 @@ class SaberClientProxy
         $this->saberCloud = DIGet(SaberCloud::class);
         $this->std = DIGet(Std::class);
         $this->scanClass = DIGet(ScanClass::class);
+        try {
+            $this->circuitBreaker = DIGet(CircuitBreaker::class);
+        } catch (\Throwable $e) {
+
+        }
         $this->saberClient = $this->scanClass->getCachedReader()->getClassAnnotation($reflectionClass, SaberClient::class);
         $this->requestMapping = $this->scanClass->getClassAndInterfaceAnnotation($reflectionClass, RequestMapping::class);
         if ($this->requestMapping == null) {
@@ -104,6 +117,23 @@ class SaberClientProxy
      */
     public function __call($name, $arguments)
     {
+        $this->response = null;
+        $serviceName = $this->saberClient->value ?? $this->saberClient->host;
+        //存在断路器，并且断路了，就执行降级
+        if ($this->circuitBreaker != null) {
+            try {
+                $available = $this->circuitBreaker->isAvailable($serviceName);
+            } catch (\Throwable $e) {
+                $this->warn("CircuitBreaker is enable ,but has error on running : {$e->getMessage()}");
+                $available = true;
+            }
+            if (!$available) {
+                if (class_exists($this->saberClient->fallback)) {
+                    return call_user_func_array([DIGet($this->saberClient->fallback), $name], $arguments);
+                }
+                throw new BadResponseException("Circuit Breaker");
+            }
+        }
         if ($this->saberClient->value != null) {
             $saber = $this->saberCloud->getSaber($this->saberClient->value);
         } elseif ($this->saberClient->host != null) {
@@ -195,16 +225,42 @@ class SaberClientProxy
         //请求
         $this->response = $saber->request($options);
         if ($this->response->getStatusCode() >= 400 && $this->response->getStatusCode() < 500 && !$this->saberClient->decode404) {
+            //断路器failure
+            if ($this->circuitBreaker != null) {
+                try {
+                    $this->circuitBreaker->failure($serviceName);
+                }catch (\Throwable $e){
+                    $this->warn("CircuitBreaker is enable ,but has error on running : {$e->getMessage()}");
+                }
+            }
+            //存在降级执行降级函数
             if (class_exists($this->saberClient->fallback)) {
                 return call_user_func_array([DIGet($this->saberClient->fallback), $name], $arguments);
             }
             throw new RouteException($this->response->getStatusCode());
         }
         if ($this->response->getStatusCode() >= 500 || $this->response->getStatusCode() < 0) {
+            //断路器failure
+            if ($this->circuitBreaker != null) {
+                try {
+                    $this->circuitBreaker->failure($serviceName);
+                }catch (\Throwable $e){
+                    $this->warn("CircuitBreaker is enable ,but has error on running : {$e->getMessage()}");
+                }
+            }
+            //存在降级执行降级函数
             if (class_exists($this->saberClient->fallback)) {
                 return call_user_func_array([DIGet($this->saberClient->fallback), $name], $arguments);
             }
             throw new BadResponseException();
+        }
+        //断路器success
+        if ($this->circuitBreaker != null) {
+            try {
+                $this->circuitBreaker->success($serviceName);
+            }catch (\Throwable $e){
+                $this->warn("CircuitBreaker is enable ,but has error on running : {$e->getMessage()}");
+            }
         }
         /** @var ResponseBody $responseBody */
         $responseBody = $this->scanClass->getMethodAndInterfaceAnnotation($reflectionMethod, ResponseBody::class);

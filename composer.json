@@ -8,7 +8,8 @@
   },
   "require-dev": {
     "esd/esd-co-server": "~0.1",
-    "esd-cloud/consul-plugin": "~0.1"
+    "esd-cloud/consul-plugin": "~0.1",
+    "esd-cloud/circuitbreaker-plugin": "~0.1"
   },
   "autoload": {
     "psr-4": {
