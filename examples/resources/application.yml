@@ -7,4 +7,4 @@ esd:
       open_http_protocol: true
 scan:
   include_paths:
-    examples: /mnt/c/Users/administrato/PhpstormProjects/saber-cloud-plugin/exampleClass
+    examples: /mnt/c/Users/白猫/PhpstormProjects/saber-cloud-plugin/exampleClass
