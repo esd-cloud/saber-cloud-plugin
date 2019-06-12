@@ -44,7 +44,7 @@ class SaberCloud
         try {
             $this->services = DIGet(Services::class);
         }catch (\Throwable $e){
-            $this->warn("没有使用服务发现，通过服务名获取url将不可用");
+            $this->warn("Without service discovery, obtaining URL by service name will not be available");
         }
     }
 
